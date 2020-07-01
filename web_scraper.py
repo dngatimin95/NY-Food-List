@@ -132,7 +132,7 @@ def create_food_df():
     return df
 
 def update_df(i):
-    old_df = pd.read_excel('C:\\Users\\Darren\\Documents\\GitHub\\New-Food-List\\Food_Scrap.xlsx')
+    old_df = pd.read_excel('C:\\Users\\****\\Documents\\GitHub\\New-Food-List\\Food_Scrap.xlsx')
     new_df = pd.concat([old_df,i])
     return new_df
 
@@ -140,9 +140,9 @@ def convert_to_csv(df, x):
     """Converts dataframe to csv file for easier access"""
     if x == True:
         df = update_df(df)
-        return df.to_excel('C:\\Users\\Darren\\Documents\\GitHub\\New-Food-List\\Food_Scrap.xlsx')
+        return df.to_excel('C:\\Users\\****\\Documents\\GitHub\\New-Food-List\\Food_Scrap.xlsx')
     else:
-        return df.to_excel('C:\\Users\\Darren\\Documents\\GitHub\\New-Food-List\\Monthly_Food_Scrap.xlsx')
+        return df.to_excel('C:\\Users\\****\\Documents\\GitHub\\New-Food-List\\Monthly_Food_Scrap.xlsx')
 
 def sort(df):
     df.sort_values(by=['Rating', 'No. of Reviews'])
@@ -179,7 +179,7 @@ def send_email(cat_count):
     msg.attach(MIMEText(body, 'plain')) 
       
     filename = "Food_Scrap.xlsx"
-    attachment = open("C:\\Users\\Darren\\Documents\\GitHub\\New-Food-List\\Monthly_Food_Scrap.xlsx", "rb") 
+    attachment = open("C:\\Users\\****\\Documents\\GitHub\\New-Food-List\\Monthly_Food_Scrap.xlsx", "rb") 
       
     p = MIMEBase('application', 'octet-stream') 
     p.set_payload((attachment).read()) 
