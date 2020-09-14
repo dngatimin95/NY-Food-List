@@ -1,4 +1,4 @@
-# New-Food-List
+# New York Food List
 
 ## Suspended due to COVID-19 affecting monthly updates
 
