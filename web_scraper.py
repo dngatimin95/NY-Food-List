@@ -8,11 +8,11 @@ from requests.exceptions import RequestException
 from contextlib import closing
 from bs4 import BeautifulSoup
 
-import smtplib 
-from email.mime.multipart import MIMEMultipart 
-from email.mime.text import MIMEText 
-from email.mime.base import MIMEBase 
-from email import encoders 
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 
 def get_site(url):
     """Get the content at `url` by making HTTP GET request.If content-type
@@ -28,7 +28,6 @@ def get_site(url):
         print_error("Error encountered during requests to {0} : {1}".format(url, str(RE)))
         print("\nPlease try again once you have a stable internet connection.\n")
         exit
-        #return None
 
 def check_response(resp):
     """Returns True if the response seems to be HTML, False otherwise."""
@@ -48,7 +47,7 @@ hottest_infa_url = 'https://www.theinfatuation.com/new-york/guides/best-new-new-
 ###########################################################
 
 def heading_eater_title(html, f_list):
-    """"""
+    """Strips any unnecessary information from scraping and adds only restaurant name"""
     fluff = ["Essential Restaurants", "Related Maps", "Hottest Restaurants"]
 
     for titles in html.findAll('h1'):
@@ -73,7 +72,7 @@ def heading_infa_title(html,f_list):
 def food_list():
     url_list = [best_eater_url, hottest_eater_url, best_infa_url, hottest_infa_url]
     f_list = []
-    
+
     for x in url_list:
         rest_link = get_site(x)
         rest_html = BeautifulSoup(rest_link, 'html.parser')
@@ -87,7 +86,7 @@ def yelp_details(rest_name):
     """Uses yelp api to search up restaurant name to find the details including
         category, address, phone number and rating as well as number of reviews and
         stores it all into a list"""
-    
+
     api_key = '******'
     headers = {'Authorization': 'Bearer %s' % api_key}
     d_list = []
@@ -103,14 +102,13 @@ def yelp_details(rest_name):
 
         for y in details:
             cat = y["categories"]
-            for i in cat: 
+            for i in cat:
                 cat_list.append(i["title"])
-    
+
             d_list.append(", ".join(cat_list))
             d_list.append(" ".join(y["location"]["display_address"]))
             d_list.append(y["phone"])
             d_list.append(y["url"])
-            #d_list.append(y["price"])
             d_list.append(y["rating"])
             d_list.append(y["review_count"])
             break
@@ -127,25 +125,25 @@ def create_food_df():
         details = yelp_details(rest)
         rest_dict[rest] = details
 
-    df = pd.DataFrame.from_dict(rest_dict, orient = 'index')
-    df.columns = ['Categories', 'Address', 'Phone No.', 'Website', 'Rating', 'No. of Reviews']
+    df = pd.DataFrame.from_dict(rest_dict, orient='index', columns=['Categories', 'Address', 'Phone No.', 'Website', 'Rating', 'No. of Reviews'])
     return df
 
-def update_df(i):
-    old_df = pd.read_excel('C:\\Users\\Darren\\Documents\\GitHub\\New-Food-List\\Food_Scrap.xlsx')
-    new_df = pd.concat([old_df,i])
-    return new_df
+def update_df(new_df):
+    old_df = pd.read_excel('C:\\Users\\Darren\\Documents\\GitHub\\New-Food-List\\Food_Scrap.xlsx', index_col=0)
+    new_df = new_df.reset_index()
+    new_df.rename({'index': 'Name'}, axis=1, inplace=True)
+    updated_df = pd.concat([old_df, new_df]).drop_duplicates(['Name'],keep='last')
+    return updated_df
 
 def convert_to_csv(df, x):
     """Converts dataframe to csv file for easier access"""
     if x == True:
-        df = update_df(df)
-        return df.to_excel('C:\\Users\\Darren\\Documents\\GitHub\\New-Food-List\\Food_Scrap.xlsx')
-    else:
-        return df.to_excel('C:\\Users\\Darren\\Documents\\GitHub\\New-Food-List\\Monthly_Food_Scrap.xlsx')
+        df2 = update_df(df)
+        df2.to_excel('C:\\Users\\Darren\\Documents\\GitHub\\New-Food-List\\Food_Scrap.xlsx')
+    df.to_excel('C:\\Users\\Darren\\Documents\\GitHub\\New-Food-List\\Monthly_Food_Scrap.xlsx')
 
 def sort(df):
-    df.sort_values(by=['Rating', 'No. of Reviews'])
+    df.sort_values(by=['No. of Reviews', 'Rating'])
     cat_count = {}
     for c in df['Categories']:
         if "," in c:
@@ -161,46 +159,41 @@ def sort(df):
         else:
             cat_count[c] = cat_count[c]+1
 
-    cat_count = sorted(cat_count.items(), key = lambda item:item[1], reverse = True)        
+    cat_count = sorted(cat_count.items(), key = lambda item:item[1], reverse = True)
     return cat_count
 
 def send_email(cat_count):
     pop_cat = cat_count[0][0]
-    
-    fromaddr = "******"
-    toaddr = "******"
-   
-    msg = MIMEMultipart() 
-    msg['From'] = fromaddr 
-    msg['To'] = toaddr 
-      
+
+    fromaddr = "******@gmail.com"
+    toaddr = "******@gmail.com"
+
+    msg = MIMEMultipart()
+    msg['From'] = fromaddr
+    msg['To'] = toaddr
+
     msg['Subject'] = "Popular Restaurants this Month!"
     body = "Hey there,\n\nTry out some of these hot places! The most popular category this month seems to be " + str(pop_cat) + ". Looks good to try!"
-    msg.attach(MIMEText(body, 'plain')) 
-      
-    filename = "Food_Scrap.xlsx"
-    attachment = open("C:\\Users\\Darren\\Documents\\GitHub\\New-Food-List\\Monthly_Food_Scrap.xlsx", "rb") 
-      
-    p = MIMEBase('application', 'octet-stream') 
-    p.set_payload((attachment).read()) 
-    
-    encoders.encode_base64(p) 
-    p.add_header('Content-Disposition', "attachment; filename= %s" % filename) 
-      
-    msg.attach(p)
-    s = smtplib.SMTP('smtp.gmail.com', 587) 
-    s.starttls()  
-    s.login(fromaddr, "*****") 
-    text = msg.as_string()
-    s.sendmail(fromaddr, toaddr, text) 
-    s.quit() 
+    msg.attach(MIMEText(body, 'plain'))
 
-#ANALYSIS OF TOP FOOD, WHAT IS MOST TRENDING CATEGORY and predict next top spots (count category, knn)
+    filename = "Food_Scrap.xlsx"
+    attachment = open("C:\\Users\\Darren\\Documents\\GitHub\\New-Food-List\\Monthly_Food_Scrap.xlsx", "rb")
+
+    p = MIMEBase('application', 'octet-stream')
+    p.set_payload((attachment).read())
+
+    encoders.encode_base64(p)
+    p.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+
+    msg.attach(p)
+    s = smtplib.SMTP('smtp.gmail.com', 587)
+    s.starttls()
+    s.login(fromaddr, "******")
+    text = msg.as_string()
+    s.sendmail(fromaddr, toaddr, text)
+    s.quit()
 
 new_df = create_food_df()
 cat = sort(new_df)
-convert_to_csv(new_df, False)
-#convert_to_csv(new_df, True)
+convert_to_csv(new_df, True)
 send_email(cat)
-
-
