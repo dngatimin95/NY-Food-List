@@ -135,7 +135,7 @@ def update_df(new_df):
     updated_df = pd.concat([old_df, new_df]).drop_duplicates(['Name'],keep='last')
     return updated_df
 
-def convert_to_csv(df, x):
+def convert_to_xl(df, x):
     """Converts dataframe to csv file for easier access"""
     if x == True:
         df2 = update_df(df)
@@ -165,8 +165,8 @@ def sort(df):
 def send_email(cat_count):
     pop_cat = cat_count[0][0]
 
-    fromaddr = "******@gmail.com"
-    toaddr = "******@gmail.com"
+    fromaddr = "******"
+    toaddr = "******"
 
     msg = MIMEMultipart()
     msg['From'] = fromaddr
@@ -195,5 +195,5 @@ def send_email(cat_count):
 
 new_df = create_food_df()
 cat = sort(new_df)
-convert_to_csv(new_df, True)
+convert_to_xl(new_df, True)
 send_email(cat)
